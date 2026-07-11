@@ -7,9 +7,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [0.1.0] — 2026-07-10
 
-Initial release. Extracted from the [beads](https://github.com/steveyegge/beads)
-Rust implementation (`src/util/id.rs`), where the scheme has been minting issue
-IDs in production.
+Initial release. Extracted from
+[beads_rust](https://github.com/Dicklesworthstone/beads_rust) (`src/util/id.rs`),
+where the scheme has been minting issue IDs in production.
 
 ### The wire format is unchanged
 

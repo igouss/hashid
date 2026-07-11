@@ -198,8 +198,8 @@ mutated program cannot behave differently from the original:
 
 ## Provenance
 
-Extracted from [beads](https://github.com/steveyegge/beads)' Rust
-implementation, where this scheme has been minting issue IDs in anger. The
+Extracted from [beads_rust](https://github.com/Dicklesworthstone/beads_rust)
+(`src/util/id.rs`), where this scheme has been minting issue IDs in anger. The
 algorithm is preserved **byte for byte** — `hashid` reproduces the same IDs from
 the same inputs, and `tests/conformance.rs` pins that against golden vectors
 taken from the original. The API around it was rebuilt:
