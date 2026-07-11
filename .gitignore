@@ -1,0 +1,12 @@
+/target
+
+# A library: downstream consumers pick their own dependency versions.
+Cargo.lock
+
+# NOTE: *.proptest-regressions is deliberately NOT ignored. Those files record
+# the seeds of inputs that once broke an invariant; committing them is what
+# turns a lucky proptest catch into a permanent regression test.
+
+# cargo-mutants working directory and reports.
+mutants.out/
+mutants.out.old/

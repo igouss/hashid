@@ -1,0 +1,40 @@
+[package]
+name = "hashid"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+description = "Content-addressed, human-typeable short IDs: SHA-256 seeded from your content, rendered base36, sized by a birthday bound, escalated on collision, and resolvable from a partial fragment."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/igouss/hashid"
+keywords = ["id", "identifier", "base36", "content-addressed", "short-id"]
+categories = ["data-structures", "algorithms"]
+readme = "README.md"
+
+# Self-contained: the empty [workspace] table makes this crate its own cargo
+# workspace root, so it builds with a tiny dep graph and stays usable as a
+# leaf dependency of anything.
+[workspace]
+
+[dependencies]
+# Domain-only deps. No async runtime, no I/O, no storage engine — the crate
+# never touches the outside world; callers hand it an IdRegistry port.
+sha2 = "0.11.0"
+chrono = "0.4.43"
+thiserror = "2.0.18"
+
+[dev-dependencies]
+# Executable specs: cucumber parses `features/*.feature` and runs the step
+# definitions in `tests/cucumber.rs`, driven from one ordinary `#[tokio::test]`
+# (no `harness = false`) so `cargo nextest` can list and run it natively.
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+proptest = "1.10"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
