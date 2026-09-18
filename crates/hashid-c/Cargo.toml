@@ -1,0 +1,32 @@
+[package]
+name = "hashid-c"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.82"
+description = "A plain C ABI for hashid: content-addressed, human-typeable short IDs, callable from C and from every language that speaks C."
+license.workspace = true
+repository.workspace = true
+keywords = ["id", "ffi", "c-api", "bindings", "base36"]
+categories = ["api-bindings", "external-ffi-bindings"]
+readme = "README.md"
+
+[lib]
+# `cdylib` for dlopen/LoadLibrary consumers (JNA, ctypes, N-API, P/Invoke);
+# `staticlib` for linking into a C binary; `lib` so Rust tests can call in.
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "hashid_c"
+
+[dependencies]
+hashid.workspace = true
+chrono.workspace = true
+
+[lints.rust]
+# Every exported function here is `unsafe extern "C"`. That is the entire point
+# of the crate, and the reason it is not part of `hashid`, which keeps
+# `unsafe_code = "forbid"`.
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"

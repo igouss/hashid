@@ -1,0 +1,24 @@
+[package]
+name = "hashid-conformance"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.82"
+description = "Runs spec/vectors.json against the hashid implementation."
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+hashid.workspace = true
+# The runner drives the resolution vectors too.
+hashid-resolve.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

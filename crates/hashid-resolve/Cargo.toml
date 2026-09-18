@@ -1,0 +1,29 @@
+[package]
+name = "hashid-resolve"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.82"
+description = "Turn a partial, human-typed fragment back into the hashid it meant."
+license.workspace = true
+repository.workspace = true
+keywords = ["id", "resolve", "prefix", "abbreviation", "hashid"]
+categories = ["command-line-interface", "data-structures"]
+readme = "README.md"
+
+[dependencies]
+hashid.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+# Executable specs: `features/resolution.feature` is the behavioural source.
+cucumber = "0.21"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"

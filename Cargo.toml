@@ -1,40 +1,39 @@
-[package]
-name = "hashid"
+# The workspace root. One core library, two boundary adapters, two test tools.
+#
+#   crates/hashid              the domain. No I/O, no unsafe, three dependencies.
+#   crates/hashid-ffi          UniFFI adapter -> Kotlin, Swift, Python, Ruby, Java.
+#   crates/hashid-c            hand-written C ABI adapter -> C, and everything
+#                              that speaks C (JNA, ctypes, cgo, N-API, P/Invoke).
+#   crates/hashid-resolve      fragment -> id, for a CLI. Depends on the core.
+#   crates/hashid-conformance  emits and checks `spec/vectors.json`.
+#
+# The adapters depend on the core. Nothing depends on an adapter. That direction
+# is enforced here, in the crate graph, rather than hoped for in review.
+#
+# `hashid` ships no store and no port trait: minting asks one question and takes
+# a closure. There is nothing left for a test-double crate to double.
+[workspace]
+resolver = "2"
+members = [
+    "crates/hashid",
+    "crates/hashid-ffi",
+    "crates/hashid-c",
+    "crates/hashid-resolve",
+    "crates/hashid-conformance",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.82"
-description = "Content-addressed, human-typeable short IDs: SHA-256 seeded from your content, rendered base36, sized by a birthday bound, escalated on collision, and resolvable from a partial fragment."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/igouss/hashid"
-keywords = ["id", "identifier", "base36", "content-addressed", "short-id"]
-categories = ["data-structures", "algorithms"]
-readme = "README.md"
 
-# Self-contained: the empty [workspace] table makes this crate its own cargo
-# workspace root, so it builds with a tiny dep graph and stays usable as a
-# leaf dependency of anything.
-[workspace]
-
-[dependencies]
-# Domain-only deps. No async runtime, no I/O, no storage engine — the crate
-# never touches the outside world; callers hand it an IdRegistry port.
+[workspace.dependencies]
+hashid = { path = "crates/hashid", version = "0.1.0" }
+hashid-resolve = { path = "crates/hashid-resolve", version = "0.1.0" }
+chrono = { version = "0.4.43", default-features = false, features = ["std", "clock"] }
 sha2 = "0.11.0"
-chrono = "0.4.43"
 thiserror = "2.0.18"
-
-[dev-dependencies]
-# Executable specs: cucumber parses `features/*.feature` and runs the step
-# definitions in `tests/cucumber.rs`, driven from one ordinary `#[tokio::test]`
-# (no `harness = false`) so `cargo nextest` can list and run it natively.
-cucumber = "0.21"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-proptest = "1.10"
-
-[lints.rust]
-unsafe_code = "forbid"
-missing_docs = "deny"
-
-[lints.clippy]
-pedantic = { level = "warn", priority = -1 }
-unwrap_used = "warn"
-expect_used = "warn"
+uniffi = "0.32"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

@@ -1,0 +1,2528 @@
+{
+  "spec_version": "1.0.0",
+  "vectors_revision": 6,
+  "specification": "hashid-spec.md",
+  "description": "Conformance vectors for the hashid ID format. Each group is a table test for one capability; each vector names the specification rules it pins. A vector carries either `expect` or `error`. Integers that do not fit a JSON double - u64 values and nanosecond timestamps - are carried as decimal strings.",
+  "conventions": {
+    "request": "{title, description|null, creator|null, created_at_nanos (decimal string), population}",
+    "error": "the error code from hashid-spec.md section 15",
+    "reason": "for a Malformed error, the grammar rule that broke",
+    "witness_and_near_miss": "Where a rule draws a line, vectors come in pairs: a witness the rule must accept and a near-miss differing in one salient dimension that it must reject. The `note` says which is which.",
+    "store": "`\"store\": \"failing\"` replaces the vector's id list with a store whose every lookup fails, to check that the failure is propagated rather than read as a negative answer.",
+    "expect_and_error": "Every vector carries exactly one of `expect` (the value the operation must produce, which may be null where 'no value' is a real outcome) or `error` (the code from hashid-spec.md section 15). No group uses any other shape."
+  },
+  "uncovered_rules": {
+    "ES-4": "Reaching the desperate nonce needs a store holding thousands of specific candidates; listing them would be most of this file, to pin one branch.",
+    "ES-5": "Exhaustion needs the same store as ES-4.",
+    "SM-3": "Needs a saturated slugged namespace, for the same reason.",
+    "ST-1": "An obligation on the caller's store, not on the implementation's output: a static file cannot assert that your database answers. What IS checked is that the implementation propagates a failure rather than reading it as a negative answer - see ES-7 and RS-7.",
+    "ST-2": "As ST-1: a fragment search is something the caller's store performs, so there is no output of this implementation for a vector to compare against. The rule it must satisfy, FM-1 to FM-4, is pinned by the `matches_fragment` group.",
+    "ST-3": "As ST-1: whether a store CAN report failure is a property of the interface a binding exposes, not of a value. The `binding-guide.md` conformance checklist is where this one is checked, by a human.",
+    "ST-4": "As ST-1: rejecting a malformed id returned by the caller's store needs a store that returns one, which a vector file has no way to supply."
+  },
+  "groups": {
+    "base36": [
+      {
+        "id": "B36-001",
+        "rules": [
+          "B36-2"
+        ],
+        "note": "Zero is one character, not an empty string.",
+        "value": "0",
+        "expect": "0"
+      },
+      {
+        "id": "B36-002",
+        "rules": [
+          "B36-1"
+        ],
+        "note": "The alphabet starts at the digits.",
+        "value": "1",
+        "expect": "1"
+      },
+      {
+        "id": "B36-003",
+        "rules": [
+          "B36-1"
+        ],
+        "note": "Ten is where letters begin.",
+        "value": "10",
+        "expect": "a"
+      },
+      {
+        "id": "B36-004",
+        "rules": [
+          "B36-1"
+        ],
+        "note": "Thirty-five is the last single digit.",
+        "value": "35",
+        "expect": "z"
+      },
+      {
+        "id": "B36-005",
+        "rules": [
+          "B36-1",
+          "B36-3"
+        ],
+        "note": "Near-miss for B36-004: thirty-six rolls over.",
+        "value": "36",
+        "expect": "10"
+      },
+      {
+        "id": "B36-006",
+        "rules": [
+          "B36-3"
+        ],
+        "note": "The last two-digit value.",
+        "value": "1295",
+        "expect": "zz"
+      },
+      {
+        "id": "B36-007",
+        "rules": [
+          "B36-3"
+        ],
+        "note": "Near-miss for B36-006: the first three-digit value.",
+        "value": "1296",
+        "expect": "100"
+      },
+      {
+        "id": "B36-008",
+        "rules": [
+          "B36-3"
+        ],
+        "note": "The whole u64 range must encode. Values are strings because JSON numbers cannot carry 2^64-1.",
+        "value": "18446744073709551615",
+        "expect": "3w5e11264sgsf"
+      }
+    ],
+    "seed": [
+      {
+        "id": "SEED-001",
+        "rules": [
+          "SD-1",
+          "SD-2",
+          "SD-5"
+        ],
+        "note": "All five fields present.",
+        "request": {
+          "title": "title",
+          "description": "desc",
+          "creator": "me",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "5:title4:desc2:me19:17836868967890123451:0"
+      },
+      {
+        "id": "SEED-002",
+        "rules": [
+          "SD-3"
+        ],
+        "note": "Absent optionals are encoded as `0:`, never omitted.",
+        "request": {
+          "title": "title",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "5:title0:0:19:17836868967890123451:0"
+      },
+      {
+        "id": "SEED-003",
+        "rules": [
+          "SD-2"
+        ],
+        "note": "An empty title still carries its length prefix.",
+        "request": {
+          "title": "",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "0:0:0:19:17836868967890123451:0"
+      },
+      {
+        "id": "SEED-004",
+        "rules": [
+          "SD-2"
+        ],
+        "note": "Witness for unforgeable boundaries: title 'a', description 'b'.",
+        "request": {
+          "title": "a",
+          "description": "b",
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "1:a1:b0:19:17836868967890123451:0"
+      },
+      {
+        "id": "SEED-005",
+        "rules": [
+          "SD-2"
+        ],
+        "note": "Near-miss for SEED-004: title 'a|b' with no description must NOT seed the same. This pair is the entire reason for the length prefix.",
+        "request": {
+          "title": "a|b",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "3:a|b0:0:19:17836868967890123451:0"
+      },
+      {
+        "id": "SEED-006",
+        "rules": [
+          "SD-2"
+        ],
+        "note": "Lengths count BYTES, not characters: 'héllo wörld' is 11 characters and 13 bytes.",
+        "request": {
+          "title": "héllo wörld",
+          "description": "multi\nline",
+          "creator": "iouri",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 3,
+        "expect": "13:héllo wörld10:multi\nline5:iouri19:17836868967890123451:3"
+      },
+      {
+        "id": "SEED-007",
+        "rules": [
+          "SD-5"
+        ],
+        "note": "The nonce is last and decimal.",
+        "request": {
+          "title": "Test Issue",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 7,
+        "expect": "10:Test Issue0:0:19:17836868967890123451:7"
+      },
+      {
+        "id": "SEED-008",
+        "rules": [
+          "SD-5"
+        ],
+        "note": "The largest nonce.",
+        "request": {
+          "title": "x",
+          "description": "",
+          "creator": "",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 4294967295,
+        "expect": "1:x0:0:19:178368689678901234510:4294967295"
+      },
+      {
+        "id": "SEED-009",
+        "rules": [
+          "SD-4"
+        ],
+        "note": "The Unix epoch is timestamp 0, which is a real value and not the out-of-range fallback.",
+        "request": {
+          "title": "x",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "0",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "1:x0:0:1:01:0"
+      },
+      {
+        "id": "SEED-010",
+        "rules": [
+          "SD-4"
+        ],
+        "note": "A negative instant renders with its sign.",
+        "request": {
+          "title": "x",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "-1000000000",
+          "population": 0
+        },
+        "nonce": 0,
+        "expect": "1:x0:0:11:-10000000001:0"
+      }
+    ],
+    "digest": [
+      {
+        "id": "DIG-001",
+        "rules": [
+          "DG-1",
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "One character: the tail of the encoding.",
+        "input": "test input",
+        "length": 1,
+        "expect": "v"
+      },
+      {
+        "id": "DIG-002",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Three characters.",
+        "input": "test input",
+        "length": 3,
+        "expect": "44v"
+      },
+      {
+        "id": "DIG-003",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Four characters. Note DIG-002 is a suffix of this: truncation is from the tail.",
+        "input": "test input",
+        "length": 4,
+        "expect": "j44v"
+      },
+      {
+        "id": "DIG-004",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Eight characters.",
+        "input": "test input",
+        "length": 8,
+        "expect": "tgwoj44v"
+      },
+      {
+        "id": "DIG-005",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Twelve characters, the collision fallback width.",
+        "input": "test input",
+        "length": 12,
+        "expect": "ehtwtgwoj44v"
+      },
+      {
+        "id": "DIG-006",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-4"
+        ],
+        "note": "Twenty characters: a u64 is at most 13 base36 digits, so this must LEFT-pad with zeros.",
+        "input": "test input",
+        "length": 20,
+        "expect": "00000002ehtwtgwoj44v"
+      },
+      {
+        "id": "DIG-007",
+        "rules": [
+          "DG-1",
+          "DG-2",
+          "DG-3"
+        ],
+        "note": "The empty string hashes.",
+        "input": "",
+        "length": 3,
+        "expect": "3tg"
+      },
+      {
+        "id": "DIG-008",
+        "rules": [
+          "DG-1",
+          "DG-2",
+          "DG-3"
+        ],
+        "note": "The empty string, wider.",
+        "input": "",
+        "length": 12,
+        "expect": "gng7kheu33tg"
+      },
+      {
+        "id": "DIG-009",
+        "rules": [
+          "DG-1",
+          "DG-2",
+          "DG-3"
+        ],
+        "note": "One character.",
+        "input": "a",
+        "length": 8,
+        "expect": "vyj5voay"
+      },
+      {
+        "id": "DIG-010",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Thirteen characters is the full unpadded encoding of the leading u64.",
+        "input": "hello",
+        "length": 13,
+        "expect": "0oltwacngevim"
+      },
+      {
+        "id": "DIG-011",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-5"
+        ],
+        "note": "Five characters of the same input: the tail of DIG-010.",
+        "input": "hello",
+        "length": 5,
+        "expect": "gevim"
+      },
+      {
+        "id": "DIG-012",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "MT-1",
+          "SD-2"
+        ],
+        "note": "A real seed string, hashed. This is what a mint actually digests: it is SEED-001's output, and MINT-011 mints the same content, so the three groups pin one chain end to end.",
+        "input": "5:title4:desc2:me19:17836868967890123451:0",
+        "length": 3,
+        "expect": "c6j"
+      },
+      {
+        "id": "DIG-013",
+        "rules": [
+          "DG-6"
+        ],
+        "note": "Near-miss: zero is not a length. There is no hash of zero characters.",
+        "input": "test input",
+        "length": 0,
+        "error": "InvalidHashLength"
+      },
+      {
+        "id": "DIG-014",
+        "rules": [
+          "DG-2",
+          "DG-3",
+          "DG-6"
+        ],
+        "note": "Witness for the upper bound.",
+        "input": "test input",
+        "length": 40,
+        "expect": "0000000000000000000000000002ehtwtgwoj44v"
+      },
+      {
+        "id": "DIG-015",
+        "rules": [
+          "DG-6"
+        ],
+        "note": "Near-miss for DIG-014: one past the grammar's hash limit.",
+        "input": "test input",
+        "length": 41,
+        "error": "InvalidHashLength"
+      }
+    ],
+    "hash_length": [
+      {
+        "id": "LEN-001",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "Zero population takes the minimum. The zero case.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 0,
+        "expect": 3
+      },
+      {
+        "id": "LEN-002",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "One.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 1,
+        "expect": 3
+      },
+      {
+        "id": "LEN-003",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A hundred still fits three characters.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 100,
+        "expect": 3
+      },
+      {
+        "id": "LEN-004",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "Witness for the 3-to-4 boundary at the default 0.25 bound.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 983,
+        "expect": 4
+      },
+      {
+        "id": "LEN-005",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "Near-miss for LEN-004: one more record and four characters no longer stay under the bound.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 984,
+        "expect": 5
+      },
+      {
+        "id": "LEN-006",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A thousand.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 1000,
+        "expect": 5
+      },
+      {
+        "id": "LEN-007",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "Ten thousand.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 10000,
+        "expect": 6
+      },
+      {
+        "id": "LEN-008",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A hundred thousand.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 100000,
+        "expect": 7
+      },
+      {
+        "id": "LEN-009",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A million saturates the default maximum.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 1000000,
+        "expect": 8
+      },
+      {
+        "id": "LEN-010",
+        "rules": [
+          "LN-3"
+        ],
+        "note": "Past saturation the answer does not grow.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 100000000,
+        "expect": 8
+      },
+      {
+        "id": "LEN-011",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A raised floor is honoured even when a shorter hash would do.",
+        "min_hash_length": 6,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "population": 0,
+        "expect": 6
+      },
+      {
+        "id": "LEN-012",
+        "rules": [
+          "LN-3"
+        ],
+        "note": "A lowered ceiling caps the answer, per LN-3.",
+        "min_hash_length": 3,
+        "max_hash_length": 4,
+        "max_collision_prob": 0.25,
+        "population": 1000000000,
+        "expect": 4
+      },
+      {
+        "id": "LEN-013",
+        "rules": [
+          "LN-1",
+          "LN-2"
+        ],
+        "note": "A stricter bound widens sooner than LEN-006 does.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.001,
+        "population": 1000,
+        "expect": 6
+      }
+    ],
+    "mint_unchecked": [
+      {
+        "id": "MINT-001",
+        "rules": [
+          "MT-1"
+        ],
+        "note": "The canonical golden ID.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "br-grz"
+      },
+      {
+        "id": "MINT-002",
+        "rules": [
+          "MT-1",
+          "SD-5"
+        ],
+        "note": "A different nonce is a different ID.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 1,
+        "hash_length": 3,
+        "expect": "br-2cs"
+      },
+      {
+        "id": "MINT-003",
+        "rules": [
+          "MT-1",
+          "DG-5"
+        ],
+        "note": "Eight characters. Its tail is MINT-001's hash.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 8,
+        "expect": "br-4scx9grz"
+      },
+      {
+        "id": "MINT-004",
+        "rules": [
+          "ES-3"
+        ],
+        "note": "The twelve-character fallback width.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 12,
+        "expect": "br-lsdz9lnsvdtv"
+      },
+      {
+        "id": "MINT-005",
+        "rules": [
+          "MT-2"
+        ],
+        "note": "The prefix does not perturb the hash: 'dtv' is the three-character tail of MINT-004.",
+        "prefix": "bd",
+        "request": {
+          "title": "Test Issue",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "bd-dtv"
+      },
+      {
+        "id": "MINT-006",
+        "rules": [
+          "MT-1"
+        ],
+        "note": "A multi-character prefix.",
+        "prefix": "myproj",
+        "request": {
+          "title": "Whatever",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 4,
+        "expect": "myproj-8xhu"
+      },
+      {
+        "id": "MINT-007",
+        "rules": [
+          "MT-1"
+        ],
+        "note": "An empty title is content too.",
+        "prefix": "br",
+        "request": {
+          "title": "",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "br-ody"
+      },
+      {
+        "id": "MINT-008",
+        "rules": [
+          "SD-2",
+          "MT-1"
+        ],
+        "note": "Multi-byte content.",
+        "prefix": "br",
+        "request": {
+          "title": "héllo wörld",
+          "description": "multi\nline",
+          "creator": "iouri",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 3,
+        "hash_length": 5,
+        "expect": "br-ixeu7"
+      },
+      {
+        "id": "MINT-009",
+        "rules": [
+          "GR-2",
+          "MT-1"
+        ],
+        "note": "A prefix containing hyphens round-trips through the grammar.",
+        "prefix": "bead-me-up",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "bead-me-up-grz"
+      },
+      {
+        "id": "MINT-010",
+        "rules": [
+          "GR-3",
+          "MT-1"
+        ],
+        "note": "A prefix containing a colon.",
+        "prefix": "external:jira",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "external:jira-grz"
+      },
+      {
+        "id": "MINT-011",
+        "rules": [
+          "MT-1",
+          "SD-1",
+          "DG-5"
+        ],
+        "note": "Closes the chain: this request seeds to SEED-001's string, which digests to DIG-012's hash, which appears here as the minted ID.",
+        "prefix": "br",
+        "request": {
+          "title": "title",
+          "description": "desc",
+          "creator": "me",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "nonce": 0,
+        "hash_length": 3,
+        "expect": "br-c6j"
+      }
+    ],
+    "parse_id": [
+      {
+        "id": "PARSE-001",
+        "rules": [
+          "GR-1"
+        ],
+        "note": "The simplest ID.",
+        "input": "br-8cda",
+        "expect": {
+          "text": "br-8cda",
+          "prefix": "br",
+          "hash": "8cda",
+          "child_path": []
+        }
+      },
+      {
+        "id": "PARSE-002",
+        "rules": [
+          "GR-2"
+        ],
+        "note": "The split is at the LAST hyphen, so the prefix keeps its own.",
+        "input": "bead-me-up-3e9",
+        "expect": {
+          "text": "bead-me-up-3e9",
+          "prefix": "bead-me-up",
+          "hash": "3e9",
+          "child_path": []
+        }
+      },
+      {
+        "id": "PARSE-003",
+        "rules": [
+          "GR-2",
+          "GR-3"
+        ],
+        "note": "A namespaced prefix.",
+        "input": "external:jira-123",
+        "expect": {
+          "text": "external:jira-123",
+          "prefix": "external:jira",
+          "hash": "123",
+          "child_path": []
+        }
+      },
+      {
+        "id": "PARSE-004",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "One child segment.",
+        "input": "br-abc123.1",
+        "expect": {
+          "text": "br-abc123.1",
+          "prefix": "br",
+          "hash": "abc123",
+          "child_path": [
+            1
+          ]
+        }
+      },
+      {
+        "id": "PARSE-005",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "Two child segments.",
+        "input": "br-8cda.1.2",
+        "expect": {
+          "text": "br-8cda.1.2",
+          "prefix": "br",
+          "hash": "8cda",
+          "child_path": [
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "PARSE-006",
+        "rules": [
+          "GR-6"
+        ],
+        "note": "Leading zeros in a child segment parse and canonicalize away.",
+        "input": "br-abc.01",
+        "expect": {
+          "text": "br-abc.1",
+          "prefix": "br",
+          "hash": "abc",
+          "child_path": [
+            1
+          ]
+        }
+      },
+      {
+        "id": "PARSE-007",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "Zero is a legal segment.",
+        "input": "br-abc.0",
+        "expect": {
+          "text": "br-abc.0",
+          "prefix": "br",
+          "hash": "abc",
+          "child_path": [
+            0
+          ]
+        }
+      },
+      {
+        "id": "PARSE-008",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "Witness for the segment ceiling: the largest u32.",
+        "input": "br-abc.4294967295",
+        "expect": {
+          "text": "br-abc.4294967295",
+          "prefix": "br",
+          "hash": "abc",
+          "child_path": [
+            4294967295
+          ]
+        }
+      },
+      {
+        "id": "PARSE-009",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "Near-miss for PARSE-008: one past the largest u32.",
+        "input": "br-abc.4294967296",
+        "error": "Malformed",
+        "reason": "ChildSegment"
+      },
+      {
+        "id": "PARSE-010",
+        "rules": [
+          "GR-3",
+          "GR-4"
+        ],
+        "note": "Witness for the length bounds: a 64-byte prefix and a 40-byte hash.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "expect": {
+          "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "child_path": []
+        }
+      },
+      {
+        "id": "PARSE-011",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "Near-miss for PARSE-010: a 65-byte prefix.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbb",
+        "error": "Malformed",
+        "reason": "PrefixTooLong"
+      },
+      {
+        "id": "PARSE-012",
+        "rules": [
+          "GR-4"
+        ],
+        "note": "Near-miss for PARSE-010: a 41-byte hash.",
+        "input": "aa-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "error": "Malformed",
+        "reason": "HashTooLong"
+      },
+      {
+        "id": "PARSE-013",
+        "rules": [
+          "GR-7"
+        ],
+        "note": "An ID longer than 105 bytes is legal when its parts are: the total is not separately enforced.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.1.2.3",
+        "expect": {
+          "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.1.2.3",
+          "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "child_path": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      {
+        "id": "PARSE-014",
+        "rules": [
+          "GR-1"
+        ],
+        "note": "No separator at all.",
+        "input": "abc123",
+        "error": "Malformed",
+        "reason": "MissingSeparator"
+      },
+      {
+        "id": "PARSE-015",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "Nothing before the separator.",
+        "input": "-abc",
+        "error": "Malformed",
+        "reason": "EmptyPrefix"
+      },
+      {
+        "id": "PARSE-016",
+        "rules": [
+          "GR-4"
+        ],
+        "note": "Nothing after the separator.",
+        "input": "br-",
+        "error": "Malformed",
+        "reason": "EmptyHash"
+      },
+      {
+        "id": "PARSE-017",
+        "rules": [
+          "GR-4"
+        ],
+        "note": "Uppercase is rejected, not folded.",
+        "input": "bd-ABC",
+        "error": "Malformed",
+        "reason": "HashCharset"
+      },
+      {
+        "id": "PARSE-018",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "An uppercase prefix is rejected too.",
+        "input": "BD-abc",
+        "error": "Malformed",
+        "reason": "PrefixCharset"
+      },
+      {
+        "id": "PARSE-019",
+        "rules": [
+          "GR-1"
+        ],
+        "note": "The empty string.",
+        "input": "",
+        "error": "Malformed",
+        "reason": "MissingSeparator"
+      },
+      {
+        "id": "PARSE-020",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "A non-numeric child segment.",
+        "input": "br-abc.x",
+        "error": "Malformed",
+        "reason": "ChildSegment"
+      },
+      {
+        "id": "PARSE-021",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "An empty child segment.",
+        "input": "br-abc..1",
+        "error": "Malformed",
+        "reason": "ChildSegment"
+      },
+      {
+        "id": "PARSE-022",
+        "rules": [
+          "GR-5"
+        ],
+        "note": "A trailing dot leaves an empty segment.",
+        "input": "br-abc.",
+        "error": "Malformed",
+        "reason": "ChildSegment"
+      },
+      {
+        "id": "PARSE-023",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "A space is outside the prefix charset.",
+        "input": "my proj-abc",
+        "error": "Malformed",
+        "reason": "PrefixCharset"
+      },
+      {
+        "id": "PARSE-024",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "Every punctuation character the prefix allows.",
+        "input": "a_b-c.d:e#f-abc",
+        "expect": {
+          "text": "a_b-c.d:e#f-abc",
+          "prefix": "a_b-c.d:e#f",
+          "hash": "abc",
+          "child_path": []
+        }
+      }
+    ],
+    "format_id": [
+      {
+        "id": "FMT-001",
+        "rules": [
+          "GR-6"
+        ],
+        "note": "A root ID.",
+        "prefix": "br",
+        "hash": "8cda",
+        "child_path": [],
+        "expect": "br-8cda"
+      },
+      {
+        "id": "FMT-002",
+        "rules": [
+          "GR-6"
+        ],
+        "note": "A child path renders dot-separated.",
+        "prefix": "bead-me-up",
+        "hash": "3e9",
+        "child_path": [
+          1,
+          2
+        ],
+        "expect": "bead-me-up-3e9.1.2"
+      },
+      {
+        "id": "FMT-003",
+        "rules": [
+          "GR-3"
+        ],
+        "note": "An illegal prefix is refused rather than rendered.",
+        "prefix": "BR",
+        "hash": "8cda",
+        "child_path": [],
+        "error": "Malformed"
+      },
+      {
+        "id": "FMT-004",
+        "rules": [
+          "GR-4"
+        ],
+        "note": "An illegal hash is refused.",
+        "prefix": "br",
+        "hash": "8CDA",
+        "child_path": [],
+        "error": "Malformed"
+      }
+    ],
+    "normalize_prefix": [
+      {
+        "id": "NPFX-001",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Trim, lowercase, drop, and strip trailing punctuation.",
+        "input": "  Project-Name_2!  ",
+        "expect": "project-name_2"
+      },
+      {
+        "id": "NPFX-002",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Already legal input is unchanged.",
+        "input": "br",
+        "expect": "br"
+      },
+      {
+        "id": "NPFX-003",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Uppercase folds.",
+        "input": "BR",
+        "expect": "br"
+      },
+      {
+        "id": "NPFX-004",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Non-ASCII is dropped, not transliterated.",
+        "input": "café",
+        "expect": "caf"
+      },
+      {
+        "id": "NPFX-005",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "A trailing separator would otherwise produce a doubled hyphen in the ID.",
+        "input": "br-",
+        "expect": "br"
+      },
+      {
+        "id": "NPFX-006",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Interior punctuation survives.",
+        "input": "a_b.c:d#e",
+        "expect": "a_b.c:d#e"
+      },
+      {
+        "id": "NPFX-007",
+        "rules": [
+          "PF-2"
+        ],
+        "note": "Clamped to 64 kept characters.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "NPFX-008",
+        "rules": [
+          "PF-3"
+        ],
+        "note": "Near-miss: nothing usable survives, and no default is invented.",
+        "input": "!!!",
+        "error": "UnusablePrefix"
+      },
+      {
+        "id": "NPFX-009",
+        "rules": [
+          "PF-3"
+        ],
+        "note": "The empty string.",
+        "input": "",
+        "error": "UnusablePrefix"
+      },
+      {
+        "id": "NPFX-010",
+        "rules": [
+          "PF-3"
+        ],
+        "note": "Whitespace only.",
+        "input": "   ",
+        "error": "UnusablePrefix"
+      },
+      {
+        "id": "NPFX-011",
+        "rules": [
+          "PF-2",
+          "PF-3"
+        ],
+        "note": "Punctuation only: kept by the charset, then stripped as trailing, leaving nothing.",
+        "input": "---",
+        "error": "UnusablePrefix"
+      }
+    ],
+    "parse_prefix": [
+      {
+        "id": "PPFX-001",
+        "rules": [
+          "PF-1"
+        ],
+        "note": "Already legal.",
+        "input": "br",
+        "expect": "br"
+      },
+      {
+        "id": "PPFX-002",
+        "rules": [
+          "PF-1"
+        ],
+        "note": "Near-miss for PPFX-001: uppercase is REJECTED here, where normalize would fold it.",
+        "input": "BR",
+        "error": "Malformed"
+      },
+      {
+        "id": "PPFX-003",
+        "rules": [
+          "PF-1"
+        ],
+        "note": "Witness for the length bound.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "PPFX-004",
+        "rules": [
+          "PF-1"
+        ],
+        "note": "Near-miss for PPFX-003.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "error": "Malformed"
+      },
+      {
+        "id": "PPFX-005",
+        "rules": [
+          "PF-1"
+        ],
+        "note": "The empty string is not a prefix.",
+        "input": "",
+        "error": "Malformed"
+      }
+    ],
+    "abbreviate_prefix": [
+      {
+        "id": "ABBR-001",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Six bytes or fewer is unchanged.",
+        "input": "br",
+        "expect": "br"
+      },
+      {
+        "id": "ABBR-002",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Witness for the six-byte boundary.",
+        "input": "abcdef",
+        "expect": "abcdef"
+      },
+      {
+        "id": "ABBR-003",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Near-miss for ABBR-002: seven bytes, single word, first three alphanumerics.",
+        "input": "abcdefg",
+        "expect": "abc"
+      },
+      {
+        "id": "ABBR-004",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Multi-word collapses to initials.",
+        "input": "my_project-name",
+        "expect": "mpn"
+      },
+      {
+        "id": "ABBR-005",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Single long word.",
+        "input": "superlongname",
+        "expect": "sup"
+      },
+      {
+        "id": "ABBR-006",
+        "rules": [
+          "PF-4"
+        ],
+        "note": "Every punctuation character separates words.",
+        "input": "a.b:c#d_e-f",
+        "expect": "abcdef"
+      }
+    ],
+    "normalize_slug": [
+      {
+        "id": "SLUG-001",
+        "rules": [
+          "SL-1"
+        ],
+        "note": "Spaces and punctuation collapse to single hyphens.",
+        "input": "Hello World!",
+        "expect": "hello-world"
+      },
+      {
+        "id": "SLUG-002",
+        "rules": [
+          "SL-1"
+        ],
+        "note": "Runs collapse; each run yields exactly one hyphen.",
+        "input": "a   b/c.d!!e",
+        "expect": "a-b-c-d-e"
+      },
+      {
+        "id": "SLUG-003",
+        "rules": [
+          "SL-1"
+        ],
+        "note": "A leading run produces nothing, because the output is still empty.",
+        "input": "!!!abc",
+        "expect": "abc"
+      },
+      {
+        "id": "SLUG-004",
+        "rules": [
+          "SL-2"
+        ],
+        "note": "A trailing run is stripped.",
+        "input": "abc!!!",
+        "expect": "abc"
+      },
+      {
+        "id": "SLUG-005",
+        "rules": [
+          "SL-1"
+        ],
+        "note": "Non-ASCII is dropped, not transliterated.",
+        "input": "café-résumé",
+        "expect": "caf-r-sum"
+      },
+      {
+        "id": "SLUG-006",
+        "rules": [
+          "SL-2"
+        ],
+        "note": "Witness for the 48-byte cap.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "SLUG-007",
+        "rules": [
+          "SL-2"
+        ],
+        "note": "Near-miss for SLUG-006: truncated to 48.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "SLUG-008",
+        "rules": [
+          "SL-2"
+        ],
+        "note": "Truncation that lands on a hyphen re-trims it.",
+        "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbb",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "SLUG-009",
+        "rules": [
+          "SL-3"
+        ],
+        "note": "Nothing usable is 'no slug', not an error and not an empty slug.",
+        "input": "!!!",
+        "expect": null
+      },
+      {
+        "id": "SLUG-010",
+        "rules": [
+          "SL-3"
+        ],
+        "note": "The empty string.",
+        "input": "",
+        "expect": null
+      },
+      {
+        "id": "SLUG-011",
+        "rules": [
+          "SL-1"
+        ],
+        "note": "Digits are kept.",
+        "input": "Issue 42",
+        "expect": "issue-42"
+      }
+    ],
+    "join_prefix_slug": [
+      {
+        "id": "JOIN-001",
+        "rules": [
+          "SL-5"
+        ],
+        "note": "The ordinary case.",
+        "prefix": "br",
+        "slug": "survey my thing",
+        "expect": "br-survey-my-thing"
+      },
+      {
+        "id": "JOIN-002",
+        "rules": [
+          "SL-5"
+        ],
+        "note": "The slug is normalized on the way in.",
+        "prefix": "br",
+        "slug": "Survey The Users",
+        "expect": "br-survey-the-users"
+      },
+      {
+        "id": "JOIN-003",
+        "rules": [
+          "SL-3",
+          "SL-5"
+        ],
+        "note": "An unusable slug yields no composite prefix.",
+        "prefix": "br",
+        "slug": "!!!",
+        "expect": null
+      },
+      {
+        "id": "JOIN-004",
+        "rules": [
+          "SL-4",
+          "SL-5"
+        ],
+        "note": "The slug is truncated to the remaining budget: 64 - (2 + 1) = 61.",
+        "prefix": "br",
+        "slug": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expect": "br-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "id": "JOIN-005",
+        "rules": [
+          "SL-5"
+        ],
+        "note": "A 64-byte prefix leaves a budget below zero, so nothing fits.",
+        "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "slug": "x",
+        "expect": null
+      },
+      {
+        "id": "JOIN-006",
+        "rules": [
+          "SL-5"
+        ],
+        "note": "Witness for the budget edge: a 62-byte prefix leaves room for exactly one character.",
+        "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "slug": "x",
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-x"
+      },
+      {
+        "id": "JOIN-007",
+        "rules": [
+          "SL-4",
+          "SL-5"
+        ],
+        "note": "Near-miss for JOIN-006: a 63-byte prefix leaves a budget of zero.",
+        "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "slug": "x",
+        "expect": null
+      }
+    ],
+    "id_parent": [
+      {
+        "id": "PAR-001",
+        "rules": [
+          "HR-1"
+        ],
+        "note": "One level up.",
+        "input": "br-abc123.1",
+        "expect": "br-abc123"
+      },
+      {
+        "id": "PAR-002",
+        "rules": [
+          "HR-1"
+        ],
+        "note": "Two levels: only the last segment is removed.",
+        "input": "br-abc123.1.2",
+        "expect": "br-abc123.1"
+      },
+      {
+        "id": "PAR-003",
+        "rules": [
+          "HR-1"
+        ],
+        "note": "A root has no parent. Not an error.",
+        "input": "br-abc123",
+        "expect": null
+      }
+    ],
+    "id_child": [
+      {
+        "id": "CHI-001",
+        "rules": [
+          "HR-2"
+        ],
+        "note": "A root's child.",
+        "input": "br-abc123",
+        "n": 4,
+        "expect": "br-abc123.4"
+      },
+      {
+        "id": "CHI-002",
+        "rules": [
+          "HR-2"
+        ],
+        "note": "A child's child.",
+        "input": "br-abc123.1",
+        "n": 2,
+        "expect": "br-abc123.1.2"
+      },
+      {
+        "id": "CHI-003",
+        "rules": [
+          "HR-2"
+        ],
+        "note": "Zero is a legal child index.",
+        "input": "br-abc123",
+        "n": 0,
+        "expect": "br-abc123.0"
+      }
+    ],
+    "id_depth": [
+      {
+        "id": "DEP-001",
+        "rules": [
+          "HR-3"
+        ],
+        "note": "A root is depth zero. The zero case.",
+        "input": "br-abc123",
+        "expect": 0
+      },
+      {
+        "id": "DEP-002",
+        "rules": [
+          "HR-3"
+        ],
+        "note": "One segment.",
+        "input": "br-abc123.1",
+        "expect": 1
+      },
+      {
+        "id": "DEP-003",
+        "rules": [
+          "HR-3"
+        ],
+        "note": "Three segments.",
+        "input": "br-abc123.1.2.3",
+        "expect": 3
+      }
+    ],
+    "is_descendant_of": [
+      {
+        "id": "DES-001",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "A direct child.",
+        "input": "br-abc123.1",
+        "ancestor": "br-abc123",
+        "expect": true
+      },
+      {
+        "id": "DES-002",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "A grandchild.",
+        "input": "br-abc123.1.2",
+        "ancestor": "br-abc123",
+        "expect": true
+      },
+      {
+        "id": "DES-003",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "Near-miss: an ID is never a descendant of itself.",
+        "input": "br-abc123",
+        "ancestor": "br-abc123",
+        "expect": false
+      },
+      {
+        "id": "DES-004",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "Near-miss: a sibling branch does not descend.",
+        "input": "br-abc123.2",
+        "ancestor": "br-abc123.1",
+        "expect": false
+      },
+      {
+        "id": "DES-005",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "A different hash is a different tree.",
+        "input": "br-xyz789.1",
+        "ancestor": "br-abc123",
+        "expect": false
+      },
+      {
+        "id": "DES-006",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "A different prefix is a different tree.",
+        "input": "bd-abc123.1",
+        "ancestor": "br-abc123",
+        "expect": false
+      },
+      {
+        "id": "DES-007",
+        "rules": [
+          "HR-4"
+        ],
+        "note": "The ancestor cannot be deeper than the descendant.",
+        "input": "br-abc123",
+        "ancestor": "br-abc123.1",
+        "expect": false
+      }
+    ],
+    "matches_fragment": [
+      {
+        "id": "FRG-001",
+        "rules": [
+          "FM-2"
+        ],
+        "note": "A prefix of the hash.",
+        "input": "br-abc123",
+        "fragment": "abc",
+        "expect": true
+      },
+      {
+        "id": "FRG-002",
+        "rules": [
+          "FM-2"
+        ],
+        "note": "A fragment matches anywhere in the hash, not only at the start.",
+        "input": "br-abc123",
+        "fragment": "c12",
+        "expect": true
+      },
+      {
+        "id": "FRG-003",
+        "rules": [
+          "FM-2"
+        ],
+        "note": "The whole hash.",
+        "input": "br-abc123",
+        "fragment": "abc123",
+        "expect": true
+      },
+      {
+        "id": "FRG-004",
+        "rules": [
+          "FM-2"
+        ],
+        "note": "No match.",
+        "input": "br-abc123",
+        "fragment": "zzz",
+        "expect": false
+      },
+      {
+        "id": "FRG-005",
+        "rules": [
+          "FM-4"
+        ],
+        "note": "With no child part in the fragment, the ID's child path is ignored.",
+        "input": "br-abc123.1.2",
+        "fragment": "abc",
+        "expect": true
+      },
+      {
+        "id": "FRG-006",
+        "rules": [
+          "FM-3"
+        ],
+        "note": "Witness: the child path matches exactly.",
+        "input": "br-64up6.4",
+        "fragment": "64up6.4",
+        "expect": true
+      },
+      {
+        "id": "FRG-007",
+        "rules": [
+          "FM-3"
+        ],
+        "note": "Near-miss for FRG-006: the parent must NOT match a fragment that names a child.",
+        "input": "br-64up6",
+        "fragment": "64up6.4",
+        "expect": false
+      },
+      {
+        "id": "FRG-008",
+        "rules": [
+          "FM-3"
+        ],
+        "note": "Near-miss for FRG-006: a sibling must not match either.",
+        "input": "br-64up6.5",
+        "fragment": "64up6.4",
+        "expect": false
+      },
+      {
+        "id": "FRG-009",
+        "rules": [
+          "FM-3"
+        ],
+        "note": "Near-miss for FRG-006: a deeper descendant is not an exact child-path match.",
+        "input": "br-64up6.4.1",
+        "fragment": "64up6.4",
+        "expect": false
+      },
+      {
+        "id": "FRG-010",
+        "rules": [
+          "FM-1",
+          "FM-3"
+        ],
+        "note": "A multi-segment child path.",
+        "input": "br-64up6.4.1",
+        "fragment": "64up6.4.1",
+        "expect": true
+      },
+      {
+        "id": "FRG-011",
+        "rules": [
+          "FM-2"
+        ],
+        "note": "The empty fragment is a substring of every hash.",
+        "input": "br-abc123",
+        "fragment": "",
+        "expect": true
+      }
+    ],
+    "validate_prefix": [
+      {
+        "id": "VPFX-001",
+        "rules": [
+          "PF-5"
+        ],
+        "note": "The expected prefix.",
+        "input": "bd-abc123",
+        "expected": "bd",
+        "also_allowed": [],
+        "expect": true
+      },
+      {
+        "id": "VPFX-002",
+        "rules": [
+          "PF-5"
+        ],
+        "note": "Near-miss: a different prefix, with no allow-list.",
+        "input": "bd-abc123",
+        "expected": "other",
+        "also_allowed": [],
+        "expect": false
+      },
+      {
+        "id": "VPFX-003",
+        "rules": [
+          "PF-5"
+        ],
+        "note": "The allow-list admits an imported namespace.",
+        "input": "bd-abc123",
+        "expected": "other",
+        "also_allowed": [
+          "bd"
+        ],
+        "expect": true
+      },
+      {
+        "id": "VPFX-004",
+        "rules": [
+          "PF-5"
+        ],
+        "note": "An allow-list that does not include it.",
+        "input": "bd-abc123",
+        "expected": "other",
+        "also_allowed": [
+          "third"
+        ],
+        "expect": false
+      }
+    ],
+    "mint": [
+      {
+        "id": "LAD-001",
+        "rules": [
+          "ES-1"
+        ],
+        "note": "Nothing taken: nonce 0 wins, and the result equals MINT-001.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [],
+        "expect": "br-grz"
+      },
+      {
+        "id": "LAD-002",
+        "rules": [
+          "ES-1",
+          "ES-6"
+        ],
+        "note": "Nonce 0 is taken, so the ladder steps to nonce 1 (MINT-002) rather than return a known-taken ID.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [
+          "br-grz"
+        ],
+        "expect": "br-2cs"
+      },
+      {
+        "id": "LAD-003",
+        "rules": [
+          "ES-1"
+        ],
+        "note": "The first eight nonces are taken; nonce 8 wins.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [
+          "br-grz",
+          "br-2cs",
+          "br-qwx",
+          "br-tcz",
+          "br-a7u",
+          "br-ty0",
+          "br-gzg",
+          "br-q8f"
+        ],
+        "expect": "br-7vk"
+      },
+      {
+        "id": "LAD-004",
+        "rules": [
+          "ES-1"
+        ],
+        "note": "Nine taken; the last nonce of the first rung wins.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [
+          "br-grz",
+          "br-2cs",
+          "br-qwx",
+          "br-tcz",
+          "br-a7u",
+          "br-ty0",
+          "br-gzg",
+          "br-q8f",
+          "br-7vk"
+        ],
+        "expect": "br-6z6"
+      },
+      {
+        "id": "LAD-005",
+        "rules": [
+          "ES-2"
+        ],
+        "note": "All ten three-character candidates are taken, so the hash WIDENS by one and restarts at nonce 0.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [
+          "br-grz",
+          "br-2cs",
+          "br-qwx",
+          "br-tcz",
+          "br-a7u",
+          "br-ty0",
+          "br-gzg",
+          "br-q8f",
+          "br-7vk",
+          "br-6z6"
+        ],
+        "expect": "br-9grz"
+      },
+      {
+        "id": "LAD-006",
+        "rules": [
+          "ES-2"
+        ],
+        "note": "Widened, and the first widened candidate is taken too.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [
+          "br-grz",
+          "br-2cs",
+          "br-qwx",
+          "br-tcz",
+          "br-a7u",
+          "br-ty0",
+          "br-gzg",
+          "br-q8f",
+          "br-7vk",
+          "br-6z6",
+          "br-9grz"
+        ],
+        "expect": "br-o2cs"
+      },
+      {
+        "id": "LAD-007",
+        "rules": [
+          "ES-3"
+        ],
+        "note": "With max_hash_length pinned to the minimum, exhausting the first rung drops straight to the twelve-character fallback.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": null,
+          "creator": null,
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [],
+        "min_hash_length": 12,
+        "max_hash_length": 12,
+        "expect": "br-lsdz9lnsvdtv"
+      },
+      {
+        "id": "LAD-008",
+        "rules": [
+          "ES-7"
+        ],
+        "note": "The store cannot answer. Minting propagates that rather than treating it as 'not taken' — which would invent an ID that may already exist.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "taken": [],
+        "store": "failing",
+        "error": "Store"
+      }
+    ],
+    "mint_with_slug": [
+      {
+        "id": "SMT-001",
+        "rules": [
+          "SM-1"
+        ],
+        "note": "The slug is folded into the prefix and the hash is still appended. The hash equals MINT-001's, since the prefix does not perturb it.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "slug": "Survey The Users",
+        "taken": [],
+        "expect": "br-survey-the-users-grz"
+      },
+      {
+        "id": "SMT-002",
+        "rules": [
+          "SM-2"
+        ],
+        "note": "An unusable slug falls back to a plain mint.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "slug": "!!!",
+        "taken": [],
+        "expect": "br-grz"
+      },
+      {
+        "id": "SMT-003",
+        "rules": [
+          "SM-2"
+        ],
+        "note": "A slug that cannot fit the prefix budget falls back to a plain mint.",
+        "prefix": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "slug": "anything",
+        "taken": [],
+        "expect": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-grz"
+      },
+      {
+        "id": "SMT-004",
+        "rules": [
+          "SM-1",
+          "ES-1"
+        ],
+        "note": "The slugged ladder steps nonces exactly as the plain one does.",
+        "prefix": "br",
+        "request": {
+          "title": "Test Issue",
+          "description": "Description",
+          "creator": "user",
+          "created_at_nanos": "1783686896789012345",
+          "population": 0
+        },
+        "slug": "Survey The Users",
+        "taken": [
+          "br-survey-the-users-grz"
+        ],
+        "expect": "br-survey-the-users-2cs"
+      }
+    ],
+    "resolve": [
+      {
+        "id": "RES-001",
+        "rules": [
+          "RS-3"
+        ],
+        "note": "A complete, existing ID.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "br-abc123",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "Exact"
+        }
+      },
+      {
+        "id": "RES-002",
+        "rules": [
+          "RS-1"
+        ],
+        "note": "Trimmed and lowercased first, and the input is echoed back verbatim.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "  BR-ABC123  ",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "Exact"
+        }
+      },
+      {
+        "id": "RES-003",
+        "rules": [
+          "RS-4"
+        ],
+        "note": "A bare hash gets the default prefix.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "abc123",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "PrefixNormalized"
+        }
+      },
+      {
+        "id": "RES-004",
+        "rules": [
+          "RS-5"
+        ],
+        "note": "A unique fragment of a hash.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "xyz",
+        "expect": {
+          "id": "br-xyz789",
+          "match_kind": "Substring"
+        }
+      },
+      {
+        "id": "RES-005",
+        "rules": [
+          "RS-5"
+        ],
+        "note": "A fragment from the middle of a hash.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "c12",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "Substring"
+        }
+      },
+      {
+        "id": "RES-006",
+        "rules": [
+          "RS-5"
+        ],
+        "note": "A hyphen pins the namespace: 'br-ab' searches for 'ab' within 'br'.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "bd-abc999"
+        ],
+        "input": "br-abc",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "Substring"
+        }
+      },
+      {
+        "id": "RES-007",
+        "rules": [
+          "RS-5"
+        ],
+        "note": "Near-miss for RES-006: the same fragment pinned to the other namespace.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "bd-abc999"
+        ],
+        "input": "bd-abc",
+        "expect": {
+          "id": "bd-abc999",
+          "match_kind": "Substring"
+        }
+      },
+      {
+        "id": "RES-008",
+        "rules": [
+          "RS-5"
+        ],
+        "note": "Ambiguity names every candidate, sorted, so a caller can present a choice.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc111",
+          "br-abc222"
+        ],
+        "input": "abc",
+        "error": "Ambiguous",
+        "matches": [
+          "br-abc111",
+          "br-abc222"
+        ]
+      },
+      {
+        "id": "RES-009",
+        "rules": [
+          "RS-6"
+        ],
+        "note": "Nothing matches.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "zzz",
+        "error": "NotFound"
+      },
+      {
+        "id": "RES-010",
+        "rules": [
+          "RS-2"
+        ],
+        "note": "The empty input.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "",
+        "error": "Malformed",
+        "reason": "Empty"
+      },
+      {
+        "id": "RES-011",
+        "rules": [
+          "RS-2"
+        ],
+        "note": "Whitespace only.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "   ",
+        "error": "Malformed",
+        "reason": "Empty"
+      },
+      {
+        "id": "RES-012",
+        "rules": [
+          "RS-8"
+        ],
+        "note": "Witness with substring matching off: a complete hash still resolves.",
+        "default_prefix": "br",
+        "allow_substring_match": false,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "abc123",
+        "expect": {
+          "id": "br-abc123",
+          "match_kind": "PrefixNormalized"
+        }
+      },
+      {
+        "id": "RES-013",
+        "rules": [
+          "RS-8"
+        ],
+        "note": "Near-miss for RES-012: a fragment does not, with substring matching off.",
+        "default_prefix": "br",
+        "allow_substring_match": false,
+        "known": [
+          "br-abc123",
+          "br-xyz789"
+        ],
+        "input": "abc",
+        "error": "NotFound"
+      },
+      {
+        "id": "RES-014",
+        "rules": [
+          "RS-3",
+          "RS-5"
+        ],
+        "note": "An exact match wins over a substring one: 'br-abc' is itself a known ID here.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-abc",
+          "br-abcdef"
+        ],
+        "input": "br-abc",
+        "expect": {
+          "id": "br-abc",
+          "match_kind": "Exact"
+        }
+      },
+      {
+        "id": "RES-015",
+        "rules": [
+          "RS-4"
+        ],
+        "note": "A bare hash CARRYING a child path still takes the default-prefix step, because prepending the prefix yields a complete existing ID. RS-4 is tried before RS-5.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-64up6",
+          "br-64up6.4"
+        ],
+        "input": "64up6.4",
+        "expect": {
+          "id": "br-64up6.4",
+          "match_kind": "PrefixNormalized"
+        }
+      },
+      {
+        "id": "RES-016",
+        "rules": [
+          "RS-5",
+          "FM-3"
+        ],
+        "note": "Near-miss for RES-015: '4up6.4' is a fragment, so the default-prefix step forms 'br-4up6.4', which does not exist, and resolution falls through to a substring match whose child path must be exact.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [
+          "br-64up6",
+          "br-64up6.4"
+        ],
+        "input": "4up6.4",
+        "expect": {
+          "id": "br-64up6.4",
+          "match_kind": "Substring"
+        }
+      },
+      {
+        "id": "RES-017",
+        "rules": [
+          "RS-7"
+        ],
+        "note": "The store cannot answer. Resolution reports a store failure, NOT 'not found': a caller that deletes on 'not found' needs the difference.",
+        "default_prefix": "br",
+        "allow_substring_match": true,
+        "known": [],
+        "store": "failing",
+        "input": "xyz",
+        "error": "Store"
+      }
+    ],
+    "config_validation": [
+      {
+        "id": "CFG-001",
+        "rules": [
+          "LN-4",
+          "LN-5"
+        ],
+        "note": "The default policy is valid.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "expect": null
+      },
+      {
+        "id": "CFG-002",
+        "rules": [
+          "LN-4"
+        ],
+        "note": "Witness for the lower bound: min may equal max.",
+        "min_hash_length": 1,
+        "max_hash_length": 1,
+        "max_collision_prob": 0.25,
+        "expect": null
+      },
+      {
+        "id": "CFG-003",
+        "rules": [
+          "LN-4"
+        ],
+        "note": "Near-miss for CFG-002: zero is not a length.",
+        "min_hash_length": 0,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.25,
+        "error": "InvalidHashBounds"
+      },
+      {
+        "id": "CFG-004",
+        "rules": [
+          "LN-4"
+        ],
+        "note": "An inverted range is not satisfiable.",
+        "min_hash_length": 9,
+        "max_hash_length": 3,
+        "max_collision_prob": 0.25,
+        "error": "InvalidHashBounds"
+      },
+      {
+        "id": "CFG-005",
+        "rules": [
+          "LN-4"
+        ],
+        "note": "Witness for the upper bound.",
+        "min_hash_length": 3,
+        "max_hash_length": 40,
+        "max_collision_prob": 0.25,
+        "expect": null
+      },
+      {
+        "id": "CFG-006",
+        "rules": [
+          "LN-4"
+        ],
+        "note": "Near-miss for CFG-005: one past the grammar's hash limit.",
+        "min_hash_length": 3,
+        "max_hash_length": 41,
+        "max_collision_prob": 0.25,
+        "error": "InvalidHashBounds"
+      },
+      {
+        "id": "CFG-007",
+        "rules": [
+          "LN-5"
+        ],
+        "note": "Near-miss: zero is not a probability, and a bound of zero is unreachable.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 0.0,
+        "error": "InvalidCollisionProb"
+      },
+      {
+        "id": "CFG-008",
+        "rules": [
+          "LN-5"
+        ],
+        "note": "Near-miss: certainty is not a bound either.",
+        "min_hash_length": 3,
+        "max_hash_length": 8,
+        "max_collision_prob": 1.0,
+        "error": "InvalidCollisionProb"
+      }
+    ]
+  }
+}

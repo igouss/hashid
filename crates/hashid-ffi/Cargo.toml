@@ -1,0 +1,42 @@
+[package]
+name = "hashid-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.82"
+description = "UniFFI bindings for hashid: content-addressed, human-typeable short IDs, callable from Kotlin, Java, Swift, Python and Ruby."
+license.workspace = true
+repository.workspace = true
+keywords = ["id", "uniffi", "ffi", "bindings", "base36"]
+categories = ["api-bindings", "data-structures"]
+readme = "README.md"
+
+[lib]
+# `cdylib` is what the foreign bindings dlopen; `lib` is what the
+# `uniffi-bindgen` binary below links against to read the metadata.
+crate-type = ["cdylib", "lib"]
+name = "hashid_ffi"
+
+# The bindings generator, vendored so that `cargo run --bin uniffi-bindgen`
+# always matches the `uniffi` version the scaffolding was built with. A
+# mismatched generator produces bindings that load and then misread the ABI —
+# a failure that looks like data corruption, not like a version error.
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+hashid.workspace = true
+uniffi = { workspace = true, features = ["cli"] }
+chrono.workspace = true
+thiserror.workspace = true
+
+[lints.rust]
+# `unsafe_code` is not forbidden here, and cannot be: UniFFI's scaffolding
+# generates `extern "C"` entry points inside this crate. That is precisely why
+# this is a separate crate from `hashid`, which keeps `unsafe_code = "forbid"`.
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"

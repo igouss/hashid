@@ -1,0 +1,13 @@
+# Naming for the generated bindings. Everything else UniFFI infers.
+
+[bindings.kotlin]
+package_name = "io.github.igouss.hashid"
+
+[bindings.python]
+cdylib_name = "hashid_ffi"
+
+[bindings.swift]
+module_name = "Hashid"
+
+[bindings.ruby]
+cdylib_name = "hashid_ffi"
