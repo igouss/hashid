@@ -64,13 +64,28 @@ impl<'a> Request<'a> {
     /// the length by at most one character.
     #[must_use]
     pub fn new(title: &'a str) -> Self {
+        Self::from_nanos(
+            title,
+            nanos_of(Utc::now()).unwrap_or_else(|| {
+                unreachable!("the system clock is outside 1677-09-21 ..= 2262-04-11")
+            }),
+        )
+    }
+
+    /// A request for `title` created at `created_at_nanos`, against an
+    /// unknown population. Never reads the clock.
+    ///
+    /// Total, because every `i64` is a representable instant. Use it where
+    /// the instant is already in hand — a boundary handing the number over,
+    /// a test, a replay — so no clock is consulted only to be overwritten.
+    /// [`Request::new`] is this constructor fed the system clock.
+    #[must_use]
+    pub fn from_nanos(title: &'a str, created_at_nanos: i64) -> Self {
         Self {
             title,
             description: None,
             creator: None,
-            created_at_nanos: nanos_of(Utc::now()).unwrap_or_else(|| {
-                unreachable!("the system clock is outside 1677-09-21 ..= 2262-04-11")
-            }),
+            created_at_nanos,
             population: 0,
         }
     }

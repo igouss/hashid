@@ -141,10 +141,7 @@ pub(crate) unsafe fn borrow_request<'a>(
     // SAFETY: as above.
     let creator: Option<&str> = unsafe { borrow_optional_str(request.creator, "request.creator") }?;
 
-    let mut core: Request<'a> = Request::new(title)
-        // The instant crosses as the nanoseconds the core hashes, so there is
-        // no date type to convert and nothing to reject.
-        .at_nanos(request.created_at_nanos)
+    let mut core: Request<'a> = Request::from_nanos(title, request.created_at_nanos)
         .with_population(narrow(request.population, "request.population")?);
     if let Some(description) = description {
         core = core.with_description(description);

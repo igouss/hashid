@@ -160,6 +160,17 @@ fn the_id_length_ceiling_is_the_sum_of_its_parts() {
     assert_eq!(MAX_ID_LEN, 105);
 }
 
+#[test]
+fn from_nanos_pins_the_instant_it_is_given() {
+    assert_eq!(Request::from_nanos("Ship it", 42).created_at_nanos(), 42);
+}
+
+#[test]
+fn from_nanos_accepts_the_extremes_of_i64() {
+    assert_eq!(Request::from_nanos("Ship it", i64::MIN).created_at_nanos(), i64::MIN);
+    assert_eq!(Request::from_nanos("Ship it", i64::MAX).created_at_nanos(), i64::MAX);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers that cannot be represented are refused, never coerced
 // ---------------------------------------------------------------------------

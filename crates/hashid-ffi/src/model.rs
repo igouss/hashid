@@ -87,8 +87,7 @@ impl Request {
     /// needs no validation: it already crossed as the nanoseconds the core
     /// hashes, so there is no date type to convert and nothing to reject.
     pub(crate) fn as_core(&self) -> Result<CoreRequest<'_>, HashidError> {
-        let mut request: CoreRequest<'_> = CoreRequest::new(&self.title)
-            .at_nanos(self.created_at_nanos)
+        let mut request: CoreRequest<'_> = CoreRequest::from_nanos(&self.title, self.created_at_nanos)
             .with_population(to_usize("population", self.population)?);
         if let Some(description) = self.description.as_deref() {
             request = request.with_description(description);
